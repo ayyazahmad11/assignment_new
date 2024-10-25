@@ -1,54 +1,99 @@
 # Solution Approach:
 
-# Parse each point’s base and value.
-# Convert each value to decimal format (base-10).
-# Use these decimal values as points to reconstruct the polynomial.
-# Apply Lagrange interpolation to determine the polynomial's coefficients.
-# Extract the constant term 
-# 𝑐
-# c (the term with no 
-# 𝑥
-# x factor) from the polynomial.
 
+# Parse Input from JSON File: Read the polynomial points from a separate JSON file, where each point has its x value as the key, and y value in a specific base.
+
+# Decode Values: Convert each y value to base-10 using the provided base.
+
+# Polynomial Interpolation: Use the decoded points to find the polynomial’s constant term 
+# 𝑐
+# c. We’ll use Lagrange interpolation because it’s straightforward and efficient for our purpose.
 
 
 
 import json
 
-def base_to_decimal(value, base):
-    """Convert a string `value` from a specified `base` to an integer in decimal format."""
+def convert_base_to_decimal(value, base):
+    """
+    Converts a value from a specified base to its decimal form.
+    
+    Args:
+        value (str): The base-encoded value as a string.
+        base (int): The base in which the value is represented.
+    
+    Returns:
+        int: Decimal integer representation of the value.
+    """
     return int(value, int(base))
 
-def parse_json_points(data):
+def extract_points_from_json(file_path):
     """
-    Extracts (x, y) points from JSON data after converting values from specified bases to decimal.
-    Each point's key is treated as `x` and its value (converted to decimal) as `y`.
+    Reads JSON data and converts encoded points (x, y) into decimal pairs.
+    
+    Args:
+        file_path (str): Path to the JSON file.
+    
+    Returns:
+        dict: Points with decimal x and y values.
+        int: Total number of points (n).
+        int: Minimum number of points required (k).
     """
+    with open(file_path, 'r') as file:
+        data = json.load(file)
+    
+    n = data["keys"]["n"]
+    k = data["keys"]["k"]
     points = {}
+    
     for key, val in data.items():
-        if key != "keys":  # Skip the metadata section
+        if key != "keys":
+            x = int(key)
             base = val["base"]
             value = val["value"]
-            points[int(key)] = base_to_decimal(value, base)
-    return points
+            y = convert_base_to_decimal(value, base)  # Convert y to decimal
+            points[x] = y
+    
+    return points, n, k
 
-def calculate_constant_term(points, required_points):
+def find_constant_term_using_lagrange(points, k):
     """
-    Apply Lagrange interpolation to approximate the constant term of a polynomial.
-    points: dictionary of (x, y) values.
-    required_points: the minimum number of points to determine the polynomial (degree + 1).
+    Determines the constant term of a polynomial using Lagrange interpolation.
+    
+    Args:
+        points (dict): Dictionary with x and y values in decimal.
+        k (int): Minimum points required for the interpolation.
+    
+    Returns:
+        float: The constant term of the polynomial.
     """
-    x_vals = list(points.keys())
-    y_vals = list(points.values())
-    constant_term = 0
+    x_vals = list(points.keys())[:k]
+    y_vals = list(points.values())[:k]
+    constant_term = 0.0
 
-    for i in range(required_points):
+    for i in range(k):
         xi, yi = x_vals[i], y_vals[i]
-        basis = 1
-        for j in range(required_points):
+        basis_poly = 1.0
+        for j in range(k):
             if i != j:
                 xj = x_vals[j]
-                basis *= xi / (xi - xj)  # Lagrange basis polynomial for xi
-        constant_term += yi * basis  # Accumulate contribution to constant term
+                basis_poly *= xi / (xi - xj)
+        
+        constant_term += yi * basis_poly  # Accumulate to get the constant term
 
     return constant_term
+
+def main():
+    # Load points and other values for each test case
+    points_1, n1, k1 = extract_points_from_json('testcase1.json')
+    points_2, n2, k2 = extract_points_from_json('testcase2.json')
+    
+    # Calculate constant term (c) for each test case
+    constant_term_1 = find_constant_term_using_lagrange(points_1, k1)
+    constant_term_2 = find_constant_term_using_lagrange(points_2, k2)
+    
+    print("Constant term (c) for Test Case 1:", constant_term_1)
+    print("Constant term (c) for Test Case 2:", constant_term_2)
+
+if __name__ == "__main__":
+    main()
+
